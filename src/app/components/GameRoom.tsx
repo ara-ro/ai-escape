@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Maximize2, Search } from 'lucide-react';
+import hoverSoundUrl from '@/music/miraclei-sample_hover_subtle04_kofi_by_miraclei-364171.mp3';
 
 interface InteractiveObject {
   id: string;
@@ -13,6 +14,19 @@ interface InteractiveObject {
 
 export default function GameRoom() {
   const [hoveredObject, setHoveredObject] = useState<string | null>(null);
+  const hoverAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playHoverSound = useCallback(() => {
+    if (!hoverAudioRef.current) {
+      const audio = new Audio(hoverSoundUrl);
+      audio.preload = 'auto';
+      hoverAudioRef.current = audio;
+    }
+    const audio = hoverAudioRef.current;
+    audio.pause();
+    audio.currentTime = 0;
+    void audio.play().catch(() => {});
+  }, []);
 
   const objects: InteractiveObject[] = [
     { id: 'door', name: '잠긴 문', x: 50, y: 30, size: 80, discovered: false },
@@ -52,7 +66,10 @@ export default function GameRoom() {
               width: `${object.size}px`,
               height: `${object.size}px`,
             }}
-            onHoverStart={() => setHoveredObject(object.id)}
+            onHoverStart={() => {
+              setHoveredObject(object.id);
+              playHoverSound();
+            }}
             onHoverEnd={() => setHoveredObject(null)}
             onClick={() => handleObjectClick(object)}
             whileHover={{ scale: 1.05 }}
