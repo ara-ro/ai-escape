@@ -10,6 +10,7 @@ import type { GameMessage, ScenarioObjectId } from '@/game/types';
 import { HUD_LOCATION } from '@/game/scenario';
 import { selectDiscoveredClues, selectObjectives, selectProgressPercent } from './selectors';
 import ApiTestPanel from './components/ApiTestPanel';
+import EscapeCelebrationOverlay from './components/EscapeCelebrationOverlay';
 import { GameApiProvider, useGameApi } from './GameApiContext';
 
 const showApiTest = false;
@@ -160,6 +161,7 @@ function ApiConnectedApp() {
 
   return (
     <div className="size-full bg-black overflow-hidden">
+      <EscapeCelebrationOverlay open={api.showEscapeCelebration} onDismiss={() => api.resetToIdle()} />
       {showApiTest ? <ApiTestPanel /> : null}
       {api.busy ? (
         <div className="pointer-events-none fixed inset-0 z-[150] flex items-end justify-center pb-28">

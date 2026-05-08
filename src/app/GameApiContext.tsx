@@ -129,6 +129,8 @@ export interface GameApiContextValue {
   sendCommand: (text: string) => Promise<void>;
   sendNpcChat: (text: string) => Promise<void>;
   requestHint: () => Promise<void>;
+  /** [6] clue/use 정답 응답 시 표시되는 축하 오버레이 (닫을 때 `resetToIdle`과 동일하게 로비로 이동) */
+  showEscapeCelebration: boolean;
 }
 
 const GameApiContext = createContext<GameApiContextValue | null>(null);
@@ -151,6 +153,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [sceneView, setSceneView] = useState<SceneViewState | null>(null);
+  const [showEscapeCelebration, setShowEscapeCelebration] = useState(false);
   const playTimeRef = useRef(0);
 
   const sessionRef = useRef<string | null>(null);
@@ -224,6 +227,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
     setError(null);
     setPhase('loading');
     setSceneView(null);
+    setShowEscapeCelebration(false);
     playTimeRef.current = 0;
     try {
       const data = await startGameSession({
@@ -277,6 +281,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
     setAffinityLevel(null);
     setClock(INITIAL_CLOCK);
     setSceneView(null);
+    setShowEscapeCelebration(false);
   }, []);
 
   const currentObjectiveId = useMemo(() => {
@@ -452,6 +457,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
           } catch {
             /* ignore */
           }
+          setShowEscapeCelebration(true);
           return true;
         }
         bumpAndLog('비밀번호가 맞지 않는다.', 'narration');
@@ -617,6 +623,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       sendCommand,
       sendNpcChat,
       requestHint,
+      showEscapeCelebration,
     }),
     [
       affinityLevel,
@@ -641,6 +648,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       sendCommand,
       sendNpcChat,
       sessionId,
+      showEscapeCelebration,
       startSession,
       userId,
     ],
