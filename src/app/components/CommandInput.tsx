@@ -2,17 +2,29 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Send, Zap } from 'lucide-react';
 
-interface CommandInputProps {
-  onSendMessage: (message: string) => void;
+interface QuickAction {
+  id: string;
+  text: string;
+  icon: string;
 }
 
-const quickActions = [
+interface CommandInputProps {
+  onSendMessage: (message: string) => void;
+  quickActions?: QuickAction[];
+  disabled?: boolean;
+}
+
+const defaultQuickActions: QuickAction[] = [
   { id: '1', text: '벽 게시판을 조사한다', icon: '🔍' },
   { id: '2', text: '피 묻은 메모를 읽는다', icon: '📝' },
   { id: '3', text: '녹슨 열쇠로 문을 연다', icon: '🚪' },
-] as const;
+];
 
-export default function CommandInput({ onSendMessage }: CommandInputProps) {
+export default function CommandInput({
+  onSendMessage,
+  quickActions = defaultQuickActions,
+  disabled,
+}: CommandInputProps) {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -36,10 +48,11 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
             <motion.button
               key={action.id}
               type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              disabled={disabled}
+              whileHover={{ scale: disabled ? 1 : 1.05 }}
+              whileTap={{ scale: disabled ? 1 : 0.95 }}
               onClick={() => onSendMessage(action.text)}
-              className="px-3 py-1.5 bg-gray-800/60 hover:bg-gray-700/60 border border-gray-600/40 hover:border-cyan-400/40 rounded-lg text-gray-300 text-xs font-medium transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-gray-800/60 hover:bg-gray-700/60 border border-gray-600/40 hover:border-cyan-400/40 rounded-lg text-gray-300 text-xs font-medium transition-colors flex items-center gap-1.5 disabled:opacity-40"
             >
               <span>{action.icon}</span>
               <span>{action.text}</span>
@@ -64,8 +77,9 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
             onChange={(e) => setInput(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            disabled={disabled}
             placeholder="무엇을 하시겠습니까? (예: 약장을 조사한다)"
-            className="w-full bg-gray-900/80 backdrop-blur-sm border-2 border-cyan-400/30 focus:border-cyan-400/60 rounded-xl px-4 py-3 pr-12 text-gray-100 placeholder-gray-500 outline-none transition-colors"
+            className="w-full bg-gray-900/80 backdrop-blur-sm border-2 border-cyan-400/30 focus:border-cyan-400/60 rounded-xl px-4 py-3 pr-12 text-gray-100 placeholder-gray-500 outline-none transition-colors disabled:opacity-40"
           />
 
           {isFocused && (
@@ -80,7 +94,7 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
 
           <motion.button
             type="submit"
-            disabled={!input.trim()}
+            disabled={disabled || !input.trim()}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${

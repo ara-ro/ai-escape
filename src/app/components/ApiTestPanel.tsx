@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
-import { startGameSession } from '@/lib/gameApi';
+import { GameApiError, startGameSession } from '@/lib/gameApi';
+import { DEFAULT_SCENARIO_ID } from '@/app/GameApiContext';
 
 const DOCS_URL = 'http://192.168.201.184:5000/docs';
 
 export default function ApiTestPanel() {
   const [open, setOpen] = useState(false);
   const [userId, setUserId] = useState('local-dev');
-  const [scenarioId, setScenarioId] = useState('hospital');
+  const [scenarioId, setScenarioId] = useState(DEFAULT_SCENARIO_ID);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -14,11 +15,18 @@ export default function ApiTestPanel() {
     setLoading(true);
     setResult(null);
     try {
-      const r = await startGameSession({ userId: userId.trim(), scenarioId: scenarioId.trim() });
-      const payload = r.json ?? r.rawText;
-      setResult(JSON.stringify({ httpStatus: r.status, body: payload }, null, 2));
+      const data = await startGameSession({
+        userId: userId.trim(),
+        scenarioId: scenarioId.trim(),
+        difficulty: 'normal',
+      });
+      setResult(JSON.stringify({ ok: true, data }, null, 2));
     } catch (e) {
-      setResult(String(e));
+      if (e instanceof GameApiError) {
+        setResult(JSON.stringify({ ok: false, status: e.status, message: e.message, body: e.bodyText }, null, 2));
+      } else {
+        setResult(String(e));
+      }
     } finally {
       setLoading(false);
     }

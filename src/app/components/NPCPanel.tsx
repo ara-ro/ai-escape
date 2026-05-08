@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, MessageCircle, Sparkles, ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, ChevronLeft, ChevronRight, Send, Lightbulb } from 'lucide-react';
 import type { NpcChatMessage, NpcEmotion } from '@/game/types';
 import polyBasic from '@/image/img-poly-basic.png';
 import polyCrazy from '@/image/img-poly-crazy.png';
@@ -59,6 +59,11 @@ interface NPCPanelProps {
   messages: NpcChatMessage[];
   affection: number;
   onNpcMessage: (text: string) => void;
+  /** `POST /api/game/companion/hint` 등 */
+  onRequestHint?: () => void;
+  hintLoading?: boolean;
+  /** 다른 API 호출 중 힌트 중복 방지 */
+  hintDisabled?: boolean;
 }
 
 export default function NPCPanel({
@@ -67,6 +72,9 @@ export default function NPCPanel({
   messages,
   affection,
   onNpcMessage,
+  onRequestHint,
+  hintLoading,
+  hintDisabled,
 }: NPCPanelProps) {
   const [input, setInput] = useState('');
   const threadScrollRef = useRef<HTMLDivElement>(null);
@@ -222,7 +230,18 @@ export default function NPCPanel({
               </div>
             </div>
 
-            <div className="p-4 border-t border-cyan-400/20">
+            <div className="p-4 border-t border-cyan-400/20 space-y-2">
+              {onRequestHint ? (
+                <button
+                  type="button"
+                  disabled={Boolean(hintLoading) || Boolean(hintDisabled)}
+                  onClick={() => onRequestHint()}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-950/40 px-3 py-2 text-xs font-medium text-amber-200 hover:bg-amber-900/50 disabled:opacity-40"
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  {hintLoading ? '힌트 생성 중…' : '힌트 요청 (호감도 소모)'}
+                </button>
+              ) : null}
               <form onSubmit={handleSendMessage} className="relative">
                 <input
                   type="text"

@@ -11,10 +11,19 @@ import {
 import type { ClueDisplay, InventoryItemId, ObjectiveDisplay } from '@/game/types';
 import { INVENTORY_META } from '@/game/scenario';
 
+interface InventoryRow {
+  id: string;
+  label: string;
+  short: string;
+}
+
 interface CluesPanelProps {
   isOpen: boolean;
   onToggle: () => void;
-  inventory: InventoryItemId[];
+  /** 레거시 로컬 엔진: `INVENTORY_META`와 함께 사용 */
+  inventory?: InventoryItemId[];
+  /** API 등 동적 소지품 행. 있으면 `inventory`보다 우선합니다. */
+  inventoryRows?: InventoryRow[];
   clues: ClueDisplay[];
   objectives: ObjectiveDisplay[];
   progressPercent: number;
@@ -23,11 +32,18 @@ interface CluesPanelProps {
 export default function CluesPanel({
   isOpen,
   onToggle,
-  inventory,
+  inventory = [],
+  inventoryRows,
   clues,
   objectives,
   progressPercent,
 }: CluesPanelProps) {
+  const rows: InventoryRow[] =
+    inventoryRows ??
+    inventory.map((id) => {
+      const meta = INVENTORY_META[id];
+      return { id, label: meta.label, short: meta.short };
+    });
   return (
     <div className="h-full relative flex">
       <AnimatePresence>
@@ -80,24 +96,23 @@ export default function CluesPanel({
               </div>
             </div>
 
-            <div className="px-4 pt-3 pb-2 border-b border-cyan-400/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Backpack className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-400 text-xs font-semibold">소지품</span>
-              </div>
-              <ul className="space-y-1.5">
-                {inventory.map((id) => {
-                  const meta = INVENTORY_META[id];
-                  return (
-                    <li key={id} className="text-xs text-gray-400 leading-relaxed">
-                      <span className="text-gray-200 font-medium">{meta.label}</span>
+            {rows.length > 0 ? (
+              <div className="px-4 pt-3 pb-2 border-b border-cyan-400/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Backpack className="w-4 h-4 text-amber-400" />
+                  <span className="text-amber-400 text-xs font-semibold">소지품</span>
+                </div>
+                <ul className="space-y-1.5">
+                  {rows.map((row) => (
+                    <li key={row.id} className="text-xs text-gray-400 leading-relaxed">
+                      <span className="text-gray-200 font-medium">{row.label}</span>
                       <span className="text-gray-600"> — </span>
-                      {meta.short}
+                      {row.short}
                     </li>
-                  );
-                })}
-              </ul>
-            </div>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex items-center gap-2 mb-3">

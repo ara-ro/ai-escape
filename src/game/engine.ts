@@ -15,7 +15,7 @@ import {
   SCENARIO_OBJECTS,
 } from './scenario';
 
-function bumpClock(clock: string): string {
+export function bumpClock(clock: string): string {
   const [h, m] = clock.split(':').map(Number);
   let nextM = m + 1;
   let nextH = h;

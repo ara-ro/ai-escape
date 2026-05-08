@@ -45,6 +45,15 @@ export const CLUE_CATALOG: Record<string, { title: string; description: string }
   },
 };
 
+/**
+ * 로컬 씬 오브젝트 → 백엔드 `interact.targetId` (API_FLOW.md의 hotspot id).
+ * 매핑되지 않은 오브젝트는 `POST /api/game/action` 자유 입력으로 전달됩니다.
+ */
+export const API_HOTSPOT_BY_SCENARIO_OBJECT: Partial<Record<ScenarioObjectId, string>> = {
+  exitDoor: 'hotspot_exit_sign',
+  cabinet: 'hotspot_cabinet',
+};
+
 export const SCENARIO_OBJECTS: {
   id: ScenarioObjectId;
   name: string;

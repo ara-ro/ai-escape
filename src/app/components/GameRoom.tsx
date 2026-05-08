@@ -7,9 +7,11 @@ import type { ScenarioObjectId } from '@/game/types';
 
 interface GameRoomProps {
   onInvestigate: (objectId: ScenarioObjectId) => void;
+  /** API 요청 등으로 입력을 막을 때 */
+  disabled?: boolean;
 }
 
-export default function GameRoom({ onInvestigate }: GameRoomProps) {
+export default function GameRoom({ onInvestigate, disabled }: GameRoomProps) {
   const [hoveredObject, setHoveredObject] = useState<string | null>(null);
   const hoverAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -39,7 +41,7 @@ export default function GameRoom({ onInvestigate }: GameRoomProps) {
 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.7)_100%)] pointer-events-none" />
 
-      <div className="absolute inset-0">
+      <div className={`absolute inset-0 ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
         {SCENARIO_OBJECTS.map((object) => (
           <motion.div
             key={object.id}
@@ -55,7 +57,10 @@ export default function GameRoom({ onInvestigate }: GameRoomProps) {
               playHoverSound();
             }}
             onHoverEnd={() => setHoveredObject(null)}
-            onClick={() => onInvestigate(object.id as ScenarioObjectId)}
+            onClick={() => {
+              if (disabled) return;
+              onInvestigate(object.id as ScenarioObjectId);
+            }}
             whileHover={{ scale: 1.05 }}
             animate={{
               opacity: hoveredObject === object.id ? 1 : 0.8,

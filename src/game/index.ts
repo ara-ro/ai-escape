@@ -1,4 +1,4 @@
-export { createInitialState, reduceGame } from './engine';
+export { createInitialState, reduceGame, bumpClock } from './engine';
 export type {
   GameDispatchInput,
   GameMessage,
@@ -10,6 +10,7 @@ export type {
   ScenarioObjectId,
 } from './types';
 export {
+  API_HOTSPOT_BY_SCENARIO_OBJECT,
   CLUE_CATALOG,
   HUD_LOCATION,
   INVENTORY_META,
