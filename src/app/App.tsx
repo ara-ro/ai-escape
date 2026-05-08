@@ -9,6 +9,10 @@ import { createInitialState, reduceGame } from '@/game';
 import type { GameMessage, ScenarioObjectId } from '@/game/types';
 import { HUD_LOCATION } from '@/game/scenario';
 import { selectDiscoveredClues, selectObjectives, selectProgressPercent } from './selectors';
+import ApiTestPanel from './components/ApiTestPanel';
+
+const showApiTest =
+  import.meta.env.DEV || import.meta.env.VITE_SHOW_API_TEST === 'true';
 
 export default function App() {
   const [isCluesPanelOpen, setIsCluesPanelOpen] = useState(true);
@@ -31,6 +35,7 @@ export default function App() {
 
   return (
     <div className="size-full bg-black overflow-hidden">
+      {showApiTest ? <ApiTestPanel /> : null}
       <div className="h-full flex flex-col">
         <div className="flex-1 flex overflow-hidden">
           <CluesPanel
