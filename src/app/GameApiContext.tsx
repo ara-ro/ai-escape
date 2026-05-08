@@ -308,8 +308,15 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
             rawInput: `${objectId} 지점을 조사한다`,
           });
           const narration =
-            pickText(res, ['narration', 'text', 'message', 'result', 'response.text', 'data.text']) ??
-            JSON.stringify(res).slice(0, 400);
+            pickText(res, [
+              'narrative',
+              'narration',
+              'data.narrative',
+              'text',
+              'message',
+              'response.text',
+              'data.text',
+            ]) ?? '내레이션을 받지 못했습니다.';
           bumpAndLog(narration, 'narration');
         } catch (err) {
           bumpAndLog(err instanceof Error ? err.message : String(err), 'narration');
@@ -388,8 +395,15 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
               rawInput: raw,
             });
             const narration =
-              pickText(res, ['narration', 'text', 'message', 'result', 'response.text', 'data.text']) ??
-              JSON.stringify(res).slice(0, 500);
+              pickText(res, [
+                'narrative',
+                'narration',
+                'data.narrative',
+                'text',
+                'message',
+                'response.text',
+                'data.text',
+              ]) ?? '내레이션을 받지 못했습니다.';
             bumpAndLog(narration, 'narration');
           } catch (e) {
             bumpAndLog(e instanceof Error ? e.message : String(e), 'narration');
@@ -467,7 +481,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
           currentObjectiveId: currentObjectiveId,
         });
         const hint =
-          pickText(res, ['hint', 'text', 'message', 'response.text']) ?? JSON.stringify(res).slice(0, 400);
+          pickText(res, ['hintText', 'data.hintText']) ?? '힌트 텍스트를 받지 못했습니다.';
         bumpAndLog(`힌트: ${hint}`, 'narration');
         setNpcThread((t) => [
           ...t,

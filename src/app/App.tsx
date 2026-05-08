@@ -12,8 +12,7 @@ import { selectDiscoveredClues, selectObjectives, selectProgressPercent } from '
 import ApiTestPanel from './components/ApiTestPanel';
 import { GameApiProvider, useGameApi } from './GameApiContext';
 
-const showApiTest =
-  import.meta.env.DEV || import.meta.env.VITE_SHOW_API_TEST === 'true';
+const showApiTest = false;
 
 const apiQuickActions = [
   { id: 'a1', text: '복도 끝 표지 주변을 조사한다', icon: '🔍' },
