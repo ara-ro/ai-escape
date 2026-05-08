@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, MessageCircle, Sparkles, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import type { NpcChatMessage, NpcEmotion } from '@/game/types';
@@ -19,6 +19,13 @@ export default function NPCPanel({
   onNpcMessage,
 }: NPCPanelProps) {
   const [input, setInput] = useState('');
+  const threadScrollRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = threadScrollRef.current;
+    if (!el || !isOpen) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, isOpen]);
   const lastNpc = [...messages].reverse().find((m) => m.sender === 'npc');
   const emotion: NpcEmotion = lastNpc?.emotion ?? 'happy';
 
@@ -117,7 +124,7 @@ export default function NPCPanel({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div ref={threadScrollRef} className="flex-1 overflow-y-auto p-4 min-h-0">
               <div className="flex items-center gap-2 mb-3">
                 <MessageCircle className="w-4 h-4 text-cyan-400" />
                 <span className="text-cyan-400 text-sm font-semibold">대화</span>
