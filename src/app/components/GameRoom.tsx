@@ -51,7 +51,6 @@ export default function GameRoom() {
               top: `${object.y}%`,
               width: `${object.size}px`,
               height: `${object.size}px`,
-              transform: 'translate(-50%, -50%)',
             }}
             onHoverStart={() => setHoveredObject(object.id)}
             onHoverEnd={() => setHoveredObject(null)}

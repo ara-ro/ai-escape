@@ -79,7 +79,7 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
             <div className="p-4 border-b border-cyan-400/20">
               <h3 className="text-cyan-300 font-bold text-lg flex items-center gap-2 mb-3 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">
                 <Sparkles className="w-5 h-5" />
-                AI 동료
+                동료
               </h3>
 
               {/* Parrot Character */}

@@ -1,12 +1,55 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Map, Volume2, Settings } from 'lucide-react';
+import { Clock, Map, Volume2, VolumeX, Settings } from 'lucide-react';
+import bgmSrc from '@/music/Paper_Birds_In_The_Rain.mp3';
 
 export default function GameHUD() {
   const gameTime = '23:47';
   const location = '폐쇄된 병동 3층';
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [muted, setMuted] = useState(false);
+
+  const startPlayback = useCallback(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    void el.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.loop = true;
+    el.volume = 0.35;
+    const attempt = el.play();
+    if (!attempt) return;
+    attempt.catch(() => {
+      el.muted = true;
+      setMuted(true);
+      void el.play().catch(() => {});
+    });
+  }, []);
+
+  const toggleMute = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    const next = !muted;
+    setMuted(next);
+    el.muted = next;
+    if (!next) startPlayback();
+  };
 
   return (
     <>
+      <audio
+        ref={audioRef}
+        src={bgmSrc}
+        loop
+        playsInline
+        preload="auto"
+        muted={muted}
+        className="hidden"
+        aria-hidden
+      />
       {/* Top HUD */}
       <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
         <div className="flex items-start justify-between p-4">
@@ -38,8 +81,17 @@ export default function GameHUD() {
             transition={{ duration: 0.5 }}
             className="flex gap-2 pointer-events-auto"
           >
-            <button className="bg-black/60 backdrop-blur-md border border-cyan-400/30 rounded-lg p-2 hover:bg-black/80 transition-colors group">
-              <Volume2 className="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" />
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? '배경음 켜기' : '배경음 끄기'}
+              className="bg-black/60 backdrop-blur-md border border-cyan-400/30 rounded-lg p-2 hover:bg-black/80 transition-colors group"
+            >
+              {muted ? (
+                <VolumeX className="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" />
+              )}
             </button>
             <button className="bg-black/60 backdrop-blur-md border border-cyan-400/30 rounded-lg p-2 hover:bg-black/80 transition-colors group">
               <Settings className="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" />
