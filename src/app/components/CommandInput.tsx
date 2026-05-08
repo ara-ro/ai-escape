@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Send, Zap } from 'lucide-react';
 
-export default function CommandInput() {
+interface CommandInputProps {
+  onSendMessage: (message: string) => void;
+}
+
+export default function CommandInput({ onSendMessage }: CommandInputProps) {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
-      console.log('Command:', input);
+      onSendMessage(input);
       setInput('');
     }
   };

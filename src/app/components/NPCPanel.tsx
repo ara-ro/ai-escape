@@ -1,32 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Heart,
-  MessageCircle,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Send,
-  Loader2,
-} from 'lucide-react';
+import { Heart, MessageCircle, Sparkles, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 
 interface Message {
   id: string;
   text: string;
   emotion: 'neutral' | 'happy' | 'sad' | 'curious';
-  role: 'npc' | 'user';
-}
-
-/** 추후 AI API 호출로 교체: 사용자 문장 → NPC 답변 텍스트·감정 */
-async function requestNpcReply(userMessage: string): Promise<Pick<Message, 'text' | 'emotion'>> {
-  await new Promise((r) => setTimeout(r, 500));
-  return {
-    text:
-      userMessage.trim().length > 0
-        ? `「${userMessage.slice(0, 80)}${userMessage.length > 80 ? '…' : ''}」… 음, 일단 여기까지는 샘플 응답이야. API 붙이면 진짜 대화가 될 거야!`
-        : '…말이 비었어. 다시 말해줄래?',
-    emotion: 'curious',
-  };
+  sender: 'npc' | 'player';
 }
 
 interface NPCPanelProps {
@@ -36,49 +16,10 @@ interface NPCPanelProps {
 
 export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: '여기서 나가려면... 힌트가 필요하겠지?',
-      emotion: 'curious',
-      role: 'npc',
-    },
-    {
-      id: '2',
-      text: '약장 비밀번호는 이 방 어딘가에 있어. 잘 찾아봐!',
-      emotion: 'happy',
-      role: 'npc',
-    },
+    { id: '1', text: '여기서 나가려면... 힌트가 필요하겠지?', emotion: 'curious', sender: 'npc' },
+    { id: '2', text: '약장 비밀번호는 이 방 어딘가에 있어. 잘 찾아봐!', emotion: 'happy', sender: 'npc' },
   ]);
-  const [draft, setDraft] = useState('');
-  const [isSending, setIsSending] = useState(false);
-
-  const sendPlayerMessage = useCallback(async () => {
-    const trimmed = draft.trim();
-    if (!trimmed || isSending) return;
-
-    const userId = `u-${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      { id: userId, text: trimmed, emotion: 'neutral', role: 'user' },
-    ]);
-    setDraft('');
-    setIsSending(true);
-
-    try {
-      const reply = await requestNpcReply(trimmed);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `n-${Date.now()}`,
-          text: reply.text,
-          emotion: reply.emotion,
-          role: 'npc',
-        },
-      ]);
-    } finally {
-      setIsSending(false);
-    }
-  }, [draft, isSending]);
+  const [input, setInput] = useState('');
 
   const affection = 65;
   const emotion = 'curious';
@@ -95,6 +36,20 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
     happy: '😊',
     sad: '😢',
     curious: '🤔',
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        text: input,
+        emotion: 'neutral',
+        sender: 'player',
+      };
+      setMessages([...messages, newMessage]);
+      setInput('');
+    }
   };
 
   return (
@@ -124,7 +79,7 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
             <div className="p-4 border-b border-cyan-400/20">
               <h3 className="text-cyan-300 font-bold text-lg flex items-center gap-2 mb-3 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">
                 <Sparkles className="w-5 h-5" />
-                동료
+                AI 동료
               </h3>
 
               {/* Parrot Character */}
@@ -183,7 +138,7 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
       </div>
 
       {/* Dialogue Box */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="flex items-center gap-2 mb-3">
           <MessageCircle className="w-4 h-4 text-cyan-400" />
           <span className="text-cyan-400 text-sm font-semibold">대화</span>
@@ -194,42 +149,35 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
             {messages.map((message, index) => (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, x: message.role === 'user' ? -10 : 10 }}
+                initial={{ opacity: 0, x: message.sender === 'player' ? -10 : 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: message.role === 'user' ? 10 : -10 }}
-                transition={{ delay: index * 0.05 }}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ delay: index * 0.1 }}
+                className={`p-3 rounded-lg ${
+                  message.sender === 'player'
+                    ? 'bg-cyan-900/40 backdrop-blur-sm border border-cyan-400/30 ml-4'
+                    : 'bg-gray-900/60 backdrop-blur-sm border border-purple-400/20 mr-4'
+                }`}
               >
-                <div
-                  className={`max-w-[92%] backdrop-blur-sm p-3 rounded-lg border text-sm leading-relaxed ${
-                    message.role === 'user'
-                      ? 'bg-cyan-950/50 border-cyan-400/35 text-cyan-100'
-                      : 'bg-gray-900/60 border-purple-400/20 text-gray-300'
-                  }`}
-                >
-                  {message.role === 'npc' ? (
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg mt-0.5 shrink-0">
-                        {emotionEmojis[message.emotion]}
-                      </span>
-                      <motion.p
-                        className="flex-1"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.05 + 0.1 }}
-                      >
-                        {message.text}
-                      </motion.p>
-                    </div>
-                  ) : (
+                <div className="flex items-start gap-2">
+                  {message.sender === 'npc' && (
+                    <span className="text-lg mt-0.5">{emotionEmojis[message.emotion]}</span>
+                  )}
+                  <div className="flex-1">
+                    {message.sender === 'player' && (
+                      <span className="text-cyan-400 text-xs font-semibold mb-1 block">나</span>
+                    )}
                     <motion.p
+                      className={`text-sm leading-relaxed ${
+                        message.sender === 'player' ? 'text-gray-200' : 'text-gray-300'
+                      }`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 + 0.1 }}
+                      transition={{ delay: index * 0.1 + 0.2 }}
                     >
                       {message.text}
                     </motion.p>
-                  )}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -237,40 +185,28 @@ export default function NPCPanel({ isOpen, onToggle }: NPCPanelProps) {
         </div>
       </div>
 
-      {/* NPC 대화 입력 — `requestNpcReply`를 AI API 호출로 교체하면 됨 */}
-      <div className="p-3 border-t border-cyan-400/20 shrink-0 bg-black/20">
-        <div className="flex gap-2 items-end">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                void sendPlayerMessage();
-              }
-            }}
-            placeholder="폴리에게 말 걸기…"
-            rows={2}
-            disabled={isSending}
-            className="flex-1 min-h-[2.75rem] max-h-28 resize-y rounded-lg bg-gray-950/80 border border-cyan-400/25 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:opacity-60"
+      {/* Chat Input */}
+      <div className="p-4 border-t border-cyan-400/20">
+        <form onSubmit={handleSendMessage} className="relative">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="폴리와 대화하기..."
+            className="w-full bg-gray-900/60 backdrop-blur-sm border border-cyan-400/30 focus:border-cyan-400/60 rounded-lg px-3 py-2 pr-10 text-gray-100 text-sm placeholder-gray-500 outline-none transition-colors"
           />
           <button
-            type="button"
-            onClick={() => void sendPlayerMessage()}
-            disabled={isSending || !draft.trim()}
-            className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-cyan-500/25 hover:bg-cyan-500/40 border border-cyan-400/40 text-cyan-200 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            aria-label="보내기"
+            type="submit"
+            disabled={!input.trim()}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
+              input.trim()
+                ? 'bg-cyan-500/80 hover:bg-cyan-500 text-white'
+                : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+            }`}
           >
-            {isSending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
+            <Send className="w-3.5 h-3.5" />
           </button>
-        </div>
-        <p className="mt-2 text-[10px] text-gray-600 leading-tight">
-          Enter 전송 · Shift+Enter 줄바꿈
-        </p>
+        </form>
       </div>
           </motion.div>
         )}
