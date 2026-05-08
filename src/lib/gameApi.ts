@@ -40,6 +40,9 @@ export interface SceneHotspotDto {
   id: string;
   name?: string;
   label?: string;
+  position?: { x?: number; y?: number };
+  isInvestigated?: boolean;
+  isLocked?: boolean;
   [key: string]: unknown;
 }
 

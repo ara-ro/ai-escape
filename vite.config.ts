@@ -41,6 +41,10 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
         },
+        '/static': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
 

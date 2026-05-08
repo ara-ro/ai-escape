@@ -26,6 +26,7 @@ import {
 import { API_HOTSPOT_BY_SCENARIO_OBJECT, INITIAL_CLOCK, POLY_OPENING_LINE } from '@/game/scenario';
 import type { GameMessage, NpcChatMessage, NpcEmotion, ObjectiveDisplay, ScenarioObjectId } from '@/game/types';
 import { bumpClock } from '@/game/engine';
+import { sceneDataToView, type SceneViewState } from '@/lib/sceneView';
 
 export const DEFAULT_SCENARIO_ID = 'abandoned_hospital_3f';
 export const DEFAULT_COMPANION_ID = 'polly_parrot';
@@ -121,7 +122,10 @@ export interface GameApiContextValue {
   setScenarioId: (v: string) => void;
   startSession: () => Promise<void>;
   resetToIdle: () => void;
-  investigateObject: (objectId: ScenarioObjectId) => Promise<void>;
+  /** 핫스팟 id(`hotspot_*`) 또는 로컬 시나리오 오브젝트 id */
+  investigateObject: (targetId: string) => Promise<void>;
+  handleSceneExit: (exitId: string) => Promise<void>;
+  sceneView: SceneViewState | null;
   sendCommand: (text: string) => Promise<void>;
   sendNpcChat: (text: string) => Promise<void>;
   requestHint: () => Promise<void>;
@@ -146,6 +150,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
   const [clock, setClock] = useState(INITIAL_CLOCK);
   const [busy, setBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
+  const [sceneView, setSceneView] = useState<SceneViewState | null>(null);
   const playTimeRef = useRef(0);
 
   const sessionRef = useRef<string | null>(null);
@@ -203,9 +208,22 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshScene = useCallback(async () => {
+    const sid = sessionRef.current;
+    const scid = sceneRef.current;
+    if (!sid || !scid) return;
+    try {
+      const scene = await getScene(scid, sid);
+      setSceneView(sceneDataToView(scene));
+    } catch {
+      /* 씬 갱신 실패는 치명적이지 않음 */
+    }
+  }, []);
+
   const startSession = useCallback(async () => {
     setError(null);
     setPhase('loading');
+    setSceneView(null);
     playTimeRef.current = 0;
     try {
       const data = await startGameSession({
@@ -221,6 +239,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       sceneRef.current = sceneId;
 
       const scene = await getScene(sceneId, sid);
+      setSceneView(sceneDataToView(scene));
       const objs = objectivesFromInitial(data.initialState?.objectives);
       setObjectives(objs.length ? objs : [{ id: 'goal', text: '목표 정보를 불러오지 못했습니다.', completed: false }]);
 
@@ -257,6 +276,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
     setAffinityScore(50);
     setAffinityLevel(null);
     setClock(INITIAL_CLOCK);
+    setSceneView(null);
   }, []);
 
   const currentObjectiveId = useMemo(() => {
@@ -265,21 +285,27 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
   }, [objectives]);
 
   const investigateObject = useCallback(
-    async (objectId: ScenarioObjectId) => {
+    async (targetId: string) => {
       const sid = sessionRef.current;
       const scid = sceneRef.current;
       if (!sid || !scid) return;
 
-      const label = API_HOTSPOT_BY_SCENARIO_OBJECT[objectId];
-      bumpAndLog(`${label ? `핫스팟 조사 (${objectId})` : `주변 조사 (${objectId})`}`, 'action');
+      const apiHotspotIds = new Set(sceneView?.hotspots.map((h) => h.id) ?? []);
+      const mappedLegacy = API_HOTSPOT_BY_SCENARIO_OBJECT[targetId as ScenarioObjectId];
+      const interactTargetId = apiHotspotIds.has(targetId) ? targetId : mappedLegacy ?? null;
 
-      if (label) {
+      bumpAndLog(
+        interactTargetId ? `핫스팟 조사 (${interactTargetId})` : `주변 조사 (${targetId})`,
+        'action',
+      );
+
+      if (interactTargetId) {
         try {
           const data = await postInteract({
             sessionId: sid,
             sceneId: scid,
             action: 'investigate',
-            targetId: label,
+            targetId: interactTargetId,
           });
           const clue = data.discoveredClue;
           if (clue?.clueId) {
@@ -289,6 +315,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
             bumpAndLog('조사가 완료되었으나 단서 형식을 해석하지 못했다.', 'narration');
           }
           await refreshClues();
+          await refreshScene();
         } catch (e) {
           const ge = e instanceof GameApiError ? e : null;
           if (ge?.status === 409) {
@@ -305,7 +332,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
           const res = await postAction({
             sessionId: sid,
             actionType: 'free_text',
-            rawInput: `${objectId} 지점을 조사한다`,
+            rawInput: `${targetId} 지점을 조사한다`,
           });
           const narration =
             pickText(res, [
@@ -323,7 +350,47 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
         }
       });
     },
-    [bumpAndLog, refreshClues, withBusy],
+    [bumpAndLog, refreshClues, refreshScene, sceneView, withBusy],
+  );
+
+  const handleSceneExit = useCallback(
+    async (exitId: string) => {
+      const sid = sessionRef.current;
+      if (!sid) return;
+      const exitRow = sceneView?.exits.find((e) => e.id === exitId);
+      const label = exitRow?.label ?? exitId;
+      bumpAndLog(`이동 시도: ${label}`, 'action');
+      if (exitRow?.isLocked) {
+        bumpAndLog('잠겨 있어 지나갈 수 없다.', 'narration');
+        return;
+      }
+      const dest = exitRow?.targetSceneId;
+      await withBusy('내레이션 생성 중…', async () => {
+        try {
+          const res = await postAction({
+            sessionId: sid,
+            actionType: 'free_text',
+            rawInput: dest
+              ? `"${label}" 방향으로 이동한다. 목표 장소: ${dest}`
+              : `"${label}" 출구로 이동한다`,
+          });
+          const narration =
+            pickText(res, [
+              'narrative',
+              'narration',
+              'data.narrative',
+              'text',
+              'message',
+              'response.text',
+              'data.text',
+            ]) ?? '내레이션을 받지 못했습니다.';
+          bumpAndLog(narration, 'narration');
+        } catch (err) {
+          bumpAndLog(err instanceof Error ? err.message : String(err), 'narration');
+        }
+      });
+    },
+    [bumpAndLog, sceneView, withBusy],
   );
 
   const tryClueUsePassword = useCallback(
@@ -343,8 +410,26 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
         });
         if (data.isCorrect) {
           bumpAndLog('자물쇠가 맞물리는 소리가 난다. 비밀번호가 맞았다.', 'narration');
-          if (data.objectiveCompleted) {
-            setObjectives((o) => mergeObjectiveCompletion(o, data.objectiveCompleted!));
+          const rewards = data.rewards;
+          const newClueIds = rewards?.newClues?.filter(Boolean);
+          if (newClueIds?.length) {
+            bumpAndLog(`새로 얻은 단서: ${newClueIds.join(', ')}`, 'narration');
+          }
+          const unlocked = rewards?.unlockedAreas?.filter(Boolean);
+          if (unlocked?.length) {
+            bumpAndLog(`열린 구역: ${unlocked.join(', ')}`, 'narration');
+          }
+          if (data.objectiveCompleted || data.nextObjective) {
+            setObjectives((prev) => {
+              let next = prev;
+              if (data.objectiveCompleted) {
+                next = mergeObjectiveCompletion(next, data.objectiveCompleted);
+              }
+              if (data.nextObjective && !next.some((o) => o.id === data.nextObjective)) {
+                next = [...next, { id: data.nextObjective, text: data.nextObjective, completed: false }];
+              }
+              return next;
+            });
           }
           try {
             await postAffinityEvent({
@@ -370,6 +455,16 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
           return true;
         }
         bumpAndLog('비밀번호가 맞지 않는다.', 'narration');
+        try {
+          await postAffinityEvent({
+            sessionId: sid,
+            companionId,
+            eventType: 'failed_puzzle',
+          });
+        } catch {
+          /* ignore */
+        }
+        await refreshAffinity();
         return true;
       } catch (e) {
         bumpAndLog(e instanceof Error ? e.message : String(e), 'narration');
@@ -517,6 +612,8 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       startSession,
       resetToIdle,
       investigateObject,
+      handleSceneExit,
+      sceneView,
       sendCommand,
       sendNpcChat,
       requestHint,
@@ -531,6 +628,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       companionId,
       currentSceneId,
       error,
+      handleSceneExit,
       investigateObject,
       log,
       npcThread,
@@ -539,6 +637,7 @@ export function GameApiProvider({ children }: { children: ReactNode }) {
       requestHint,
       resetToIdle,
       scenarioId,
+      sceneView,
       sendCommand,
       sendNpcChat,
       sessionId,

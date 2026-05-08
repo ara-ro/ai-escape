@@ -54,7 +54,7 @@ function LocalDemoApp() {
           />
 
           <div className="flex-1 relative">
-            <GameRoom onInvestigate={dispatchInvestigate} />
+            <GameRoom onInvestigate={(id) => dispatchInvestigate(id as ScenarioObjectId)} />
             <GameHUD gameTime={gameState.clock} location={HUD_LOCATION} />
             <GameLog messages={messages} />
           </div>
@@ -191,7 +191,12 @@ function ApiConnectedApp() {
           />
 
           <div className="relative flex-1">
-            <GameRoom disabled={api.busy} onInvestigate={(id) => void api.investigateObject(id)} />
+            <GameRoom
+              disabled={api.busy}
+              sceneView={api.sceneView}
+              onInvestigate={(id) => void api.investigateObject(id)}
+              onSceneExit={(id) => void api.handleSceneExit(id)}
+            />
             <GameHUD
               gameTime={api.clock}
               location={api.currentSceneId ? `씬: ${api.currentSceneId}` : HUD_LOCATION}
