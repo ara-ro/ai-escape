@@ -2,6 +2,56 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, MessageCircle, Sparkles, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import type { NpcChatMessage, NpcEmotion } from '@/game/types';
+import polyBasic from '@/image/img-poly-basic.png';
+import polyCrazy from '@/image/img-poly-crazy.png';
+import polyDark from '@/image/img-poly-dark.png';
+import polyMad from '@/image/img-poly-mad.png';
+import polyMad2 from '@/image/img-poly-mad2.png';
+import polySad from '@/image/img-poly-sad.png';
+import polyThink from '@/image/img-poly-think.png';
+import polyWondering from '@/image/img-poly-wondering.png';
+
+/** 마지막 NPC 감정 + 호감도로 폴리 초상 8종 중 하나를 고릅니다. */
+function polyPortraitSrc(emotion: NpcEmotion, affection: number): string {
+  if (affection >= 40) {
+    switch (emotion) {
+      case 'neutral':
+        return polyBasic;
+      case 'happy':
+        return polyWondering;
+      case 'sad':
+        return polySad;
+      case 'curious':
+        return polyThink;
+    }
+  }
+  if (affection >= 20) {
+    switch (emotion) {
+      case 'neutral':
+        return polyMad;
+      case 'happy':
+        return polyBasic;
+      case 'sad':
+        return polyMad2;
+      case 'curious':
+        return polyWondering;
+    }
+  }
+  switch (emotion) {
+    case 'neutral':
+      return polyMad2;
+    case 'happy':
+      return polyCrazy;
+    case 'sad':
+      return polyDark;
+    case 'curious':
+      return polyMad;
+    default: {
+      const _exhaustive: never = emotion;
+      return _exhaustive;
+    }
+  }
+}
 
 interface NPCPanelProps {
   isOpen: boolean;
@@ -28,6 +78,7 @@ export default function NPCPanel({
   }, [messages, isOpen]);
   const lastNpc = [...messages].reverse().find((m) => m.sender === 'npc');
   const emotion: NpcEmotion = lastNpc?.emotion ?? 'happy';
+  const polySrc = polyPortraitSrc(emotion, affection);
 
   const emotionEmojis: Record<NpcEmotion, string> = {
     neutral: '😐',
@@ -79,7 +130,7 @@ export default function NPCPanel({
                 transition={{ duration: 0.3 }}
               >
                 <img
-                  src="https://images.unsplash.com/photo-1713022646048-ac4b541c9d85?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxwYXJyb3QlMjBiaXJkJTIwcG9ydHJhaXQlMjBjaGFyYWN0ZXJ8ZW58MXx8fHwxNzc4MjUxODgwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+                  src={polySrc}
                   alt="앵무새 폴리"
                   className="w-full h-full object-cover"
                 />
