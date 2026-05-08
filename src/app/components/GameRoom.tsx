@@ -33,10 +33,6 @@ export default function GameRoom({ onInvestigate, sceneView, onSceneExit, disabl
     void audio.play().catch(() => {});
   }, []);
 
-  const bgStyle = sceneView?.backgroundImageUrl
-    ? `url(${sceneView.backgroundImageUrl})`
-    : FALLBACK_BG;
-
   const roomTitle = sceneView?.title ?? ROOM_TITLE;
   const roomSubtitle = sceneView?.description ?? '공간을 조사하여 탈출 방법을 찾으세요';
 
@@ -45,7 +41,7 @@ export default function GameRoom({ onInvestigate, sceneView, onSceneExit, disabl
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: bgStyle,
+          backgroundImage: FALLBACK_BG,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
