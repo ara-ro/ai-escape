@@ -6,6 +6,12 @@ interface CommandInputProps {
   onSendMessage: (message: string) => void;
 }
 
+const quickActions = [
+  { id: '1', text: '벽 게시판을 조사한다', icon: '🔍' },
+  { id: '2', text: '피 묻은 메모를 읽는다', icon: '📝' },
+  { id: '3', text: '녹슨 열쇠로 문을 연다', icon: '🚪' },
+] as const;
+
 export default function CommandInput({ onSendMessage }: CommandInputProps) {
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -18,15 +24,8 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
     }
   };
 
-  const quickActions = [
-    { id: '1', text: '약장 조사하기', icon: '🔍' },
-    { id: '2', text: '문 열어보기', icon: '🚪' },
-    { id: '3', text: '시계 확인하기', icon: '🕐' },
-  ];
-
   return (
     <div className="bg-black/60 backdrop-blur-md border-t border-cyan-400/20 p-4">
-      {/* Quick Actions */}
       <div className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Zap className="w-3 h-3 text-yellow-400" />
@@ -36,8 +35,10 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
           {quickActions.map((action) => (
             <motion.button
               key={action.id}
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => onSendMessage(action.text)}
               className="px-3 py-1.5 bg-gray-800/60 hover:bg-gray-700/60 border border-gray-600/40 hover:border-cyan-400/40 rounded-lg text-gray-300 text-xs font-medium transition-colors flex items-center gap-1.5"
             >
               <span>{action.icon}</span>
@@ -47,7 +48,6 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
         </div>
       </div>
 
-      {/* Command Input Form */}
       <form onSubmit={handleSubmit} className="relative">
         <motion.div
           className="relative"
@@ -68,7 +68,6 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
             className="w-full bg-gray-900/80 backdrop-blur-sm border-2 border-cyan-400/30 focus:border-cyan-400/60 rounded-xl px-4 py-3 pr-12 text-gray-100 placeholder-gray-500 outline-none transition-colors"
           />
 
-          {/* Animated Border Effect */}
           {isFocused && (
             <motion.div
               className="absolute inset-0 rounded-xl pointer-events-none"
@@ -79,7 +78,6 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
             </motion.div>
           )}
 
-          {/* Send Button */}
           <motion.button
             type="submit"
             disabled={!input.trim()}
@@ -95,7 +93,6 @@ export default function CommandInput({ onSendMessage }: CommandInputProps) {
           </motion.button>
         </motion.div>
 
-        {/* Typing Indicator */}
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{

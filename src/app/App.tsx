@@ -1,83 +1,64 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import GameRoom from './components/GameRoom';
 import CluesPanel from './components/CluesPanel';
 import NPCPanel from './components/NPCPanel';
 import CommandInput from './components/CommandInput';
 import GameHUD from './components/GameHUD';
 import GameLog from './components/GameLog';
-
-interface GameMessage {
-  id: string;
-  text: string;
-  type: 'action' | 'system' | 'narration';
-  timestamp: string;
-}
+import { createInitialState, reduceGame } from '@/game';
+import type { GameMessage, ScenarioObjectId } from '@/game/types';
+import { HUD_LOCATION } from '@/game/scenario';
+import { selectDiscoveredClues, selectObjectives, selectProgressPercent } from './selectors';
 
 export default function App() {
   const [isCluesPanelOpen, setIsCluesPanelOpen] = useState(true);
   const [isNPCPanelOpen, setIsNPCPanelOpen] = useState(true);
-  const [gameMessages, setGameMessages] = useState<GameMessage[]>([
-    {
-      id: '1',
-      text: '게임이 시작되었습니다. 폐쇄된 병동에서 탈출하세요.',
-      type: 'system',
-      timestamp: '00:00',
-    },
-  ]);
+  const [gameState, setGameState] = useState(createInitialState);
 
-  const handleSendMessage = (message: string) => {
-    const now = new Date();
-    const timestamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const messages: GameMessage[] = gameState.log;
 
-    const newMessage: GameMessage = {
-      id: Date.now().toString(),
-      text: message,
-      type: 'action',
-      timestamp,
-    };
+  const dispatchCommand = useCallback((text: string) => {
+    setGameState((s) => reduceGame(s, { kind: 'command', text }));
+  }, []);
 
-    setGameMessages([...gameMessages, newMessage]);
+  const dispatchInvestigate = useCallback((objectId: ScenarioObjectId) => {
+    setGameState((s) => reduceGame(s, { kind: 'investigate', objectId }));
+  }, []);
 
-    setTimeout(() => {
-      const responseMessage: GameMessage = {
-        id: (Date.now() + 1).toString(),
-        text: `"${message}" - 시도해보았지만 아무 일도 일어나지 않았다.`,
-        type: 'narration',
-        timestamp,
-      };
-      setGameMessages((prev) => [...prev, responseMessage]);
-    }, 1000);
-  };
+  const dispatchNpcChat = useCallback((text: string) => {
+    setGameState((s) => reduceGame(s, { kind: 'npc_chat', text }));
+  }, []);
 
   return (
     <div className="size-full bg-black overflow-hidden">
-      {/* Main Game Layout */}
       <div className="h-full flex flex-col">
-        {/* Game Area with Side Panels */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Clues */}
           <CluesPanel
             isOpen={isCluesPanelOpen}
             onToggle={() => setIsCluesPanelOpen(!isCluesPanelOpen)}
+            inventory={gameState.inventory}
+            clues={selectDiscoveredClues(gameState)}
+            objectives={selectObjectives(gameState)}
+            progressPercent={selectProgressPercent(gameState)}
           />
 
-          {/* Center - Game Room */}
           <div className="flex-1 relative">
-            <GameRoom />
-            <GameHUD />
-            <GameLog messages={gameMessages} />
+            <GameRoom onInvestigate={dispatchInvestigate} />
+            <GameHUD gameTime={gameState.clock} location={HUD_LOCATION} />
+            <GameLog messages={messages} />
           </div>
 
-          {/* Right Panel - NPC */}
           <NPCPanel
             isOpen={isNPCPanelOpen}
             onToggle={() => setIsNPCPanelOpen(!isNPCPanelOpen)}
+            messages={gameState.npcThread}
+            affection={gameState.polyAffection}
+            onNpcMessage={dispatchNpcChat}
           />
         </div>
 
-        {/* Bottom - Command Input */}
         <div className="flex-shrink-0">
-          <CommandInput onSendMessage={handleSendMessage} />
+          <CommandInput onSendMessage={dispatchCommand} />
         </div>
       </div>
     </div>
